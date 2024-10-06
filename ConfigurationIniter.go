@@ -1,4 +1,4 @@
-package ConfigFileHelper
+package main
 
 import (
 	"reflect"
@@ -22,7 +22,7 @@ func assignConfigToStructHelper(config map[string]string, structType interface{}
 	return reflectVal.Interface()
 }
 
-// AssignConfigToStruct (向外界暴露的接口，传入配置项名字和，结构体即可将对应的配置赋值给结构体)
+// AssignConfigToStruct (向外界暴露的接口，传入配置项名字和结构体即可将对应的配置赋值给结构体)
 func AssignConfigToStruct(configName string, structType interface{}) interface{} {
 	return assignConfigToStructHelper(getConfigFileContext("application.yaml", configName), structType)
 }
