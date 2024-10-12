@@ -2,24 +2,15 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
 
 // getConfigFileContext (将application.yaml中与configName相关的配置以map[string][string]的方式返回)
 func getConfigFileContext(filePath string, configName string) map[string]string {
-	file, err := os.Open(filePath)
-	if err != nil {
-		fmt.Println("文件打开失败")
-	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			fmt.Println("文件关闭异常")
-		}
-	}(file)
+	fileContent := readFile(filePath)
 
 	result := make(map[string]string)
 	//表示目标配置前的空格个数，以这个指标判别哪一些配置是目标配置包含的配置
@@ -27,9 +18,7 @@ func getConfigFileContext(filePath string, configName string) map[string]string 
 	//表示当前行是否应该应该将key:value键值对读取到result中
 	resultAppendFlag := false
 
-	reader := bufio.NewReader(file)
-	for {
-		content, err := reader.ReadString('\n')
+	for _, content := range fileContent {
 
 		//通过当前行的内容是否与传入的配置项名称一致和缩进空格个数切换是否读入key:value
 		//每次读取到目标配置项或者判断为已经读取到另一配置项时切换resultAppendFlag的状态实现result只包含目标配置项的内容而排除其他配置项
@@ -49,14 +38,24 @@ func getConfigFileContext(filePath string, configName string) map[string]string 
 			key, value := strings.Trim(splitContent[0], " "), splitContent[1][1:]
 			result[key] = value
 		}
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Println(err)
-		}
 	}
 	return result
+}
+
+// geSingleConfig (获取单个配置项的值)
+func getSingleConfig(filePath string, configName string) (string, error) {
+	fileContent := readFile(filePath)
+	for _, content := range fileContent {
+
+		currentConfig := strings.Split(strings.Trim(content, " "), ":")
+		currentConfigKey := currentConfig[0]
+		currentConfigValue := currentConfig[1]
+		if currentConfigKey == configName {
+			return currentConfigValue, nil
+		}
+
+	}
+	return "", errors.New("not found")
 }
 
 func isSameConfig(fileContent string, configName string) (bool, int) {
@@ -77,6 +76,8 @@ func isSameConfig(fileContent string, configName string) (bool, int) {
 	}
 	return true, contentBlankCount
 }
+
+// blankCount 返回当前行缩进的空格个数
 func blankCount(fileContent string) int {
 	count := 0
 	for _, char := range fileContent {
@@ -86,4 +87,28 @@ func blankCount(fileContent string) int {
 		count++
 	}
 	return count
+}
+
+// readFile 读取整个文件的内容
+func readFile(filePath string) []string {
+	result := make([]string, 0)
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Print("文件打开失败", err)
+	}
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			fmt.Println("文件关闭异常")
+		}
+	}()
+	reader := bufio.NewReader(file)
+	for {
+		content, err := reader.ReadString('\n')
+		result = append(result, content)
+		if err != nil {
+			break
+		}
+	}
+	return result
 }

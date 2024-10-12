@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+type ConfigReader struct {
+	configFilePath string
+}
+
 // assignConfigToStruct (将从application读取到的相关配置导入到传入的结构体中)
 func assignConfigToStructHelper(config map[string]string, structType interface{}) interface{} {
 	reflectVal := reflect.ValueOf(structType)
@@ -22,7 +26,12 @@ func assignConfigToStructHelper(config map[string]string, structType interface{}
 	return reflectVal.Interface()
 }
 
-// AssignConfigToStruct (向外界暴露的接口，传入配置项名字和结构体即可将对应的配置赋值给结构体)
-func AssignConfigToStruct(configName string, structType interface{}) interface{} {
-	return assignConfigToStructHelper(getConfigFileContext("application.yaml", configName), structType)
+// AssignMapConfigToStruct (向外界暴露的接口，传入配置项名字和结构体即可将对应的配置赋值给结构体)
+func (cr *ConfigReader) AssignMapConfigToStruct(configName string, structType interface{}) interface{} {
+	return assignConfigToStructHelper(getConfigFileContext(cr.configFilePath, configName), structType)
+}
+
+func (cr *ConfigReader) AssignSingleConfigToString(configName string, result *string) {
+	configValue, _ := getSingleConfig(cr.configFilePath, configName)
+	*result = configValue
 }
